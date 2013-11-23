@@ -59,50 +59,87 @@ import com.parallels.utils.ui.log.LogView.TreeParent;
 //(Nov 13 10:52:26 a) : (DBG) [(1:4510:b25fdb70:3671) (1:4472:aeecdb70 Kernel)]: [(txn:17084) (task:57) (DBS::DSNResourceCoordinator::rollback)] ===> (ENTRY)
 //(Nov 13 10:52:26 a) : (DBG) [(1:4510:b25fdb70:3671) (1:4472:aeecdb70 Kernel)]: [(txn:17084) (task:57) (DBS::DSNResourceCoordinator::rollback)] <=== (EXIT) [(0.000156)]
 //(Nov 13 10:52:26a) : (DBG) [(SYSTEM) (1:4510:b25fdb70) (TaskManager)]: [(task:57) process] TaskI 57: complete
-class ViewContentProvider implements IStructuredContentProvider,ITreeContentProvider {
+
+class ViewContentProvider implements IStructuredContentProvider,
+		ITreeContentProvider {
 	// (Nov 13 10:52:26 a) : (DBG) [(1:4510:b25fdb70:3671 1:4472:aeecdb70
 	// Kernel)]: [(txn:17084) (task:57) (DBS::DSNResourceCoordinator::rollback)]
 	// ===> (ENTRY)
-	// static final Pattern METHOD_ENTER_EXIT_TRANSACTION_TASK =// Pattern.compile("(.+) : (\\w{3}) [(.+)]: [txn:(\\d+) task:(\\d+) (.*)] ===> (ENTRY|EXIT)");
-	static final Pattern DO_NOT_PROCESS = Pattern.compile(
-			  "(.*)\\[(.*)Tasks::impl::GlobalQueue::(.*)\\] (.*)|"
-			+ "(.*)\\[(.*)Tasks::impl::TaskImpl::process\\](.*)|"
-			+ "(.*)\\[(.*)Tasks::impl::TaskManager_impl::(.*)\\](.*)|"
-			+ "(.*)\\[(.*)SimpleServantActivator::etherealize\\](.*)|"
-			+ "(.*)\\]: STMT \\[Con:(.*)|"+ "(.*)\\]: CORBA_1:(.*)|"
-			+ "(.*)\\[OpenAPI::(.*)|"
-			+ "(.*)\\[DBS::TransactionManager::getTransaction\\](.*)|"
-			+ "(.*)\\[txn:(\\d+) DBS::Transaction_impl::commit\\](.*)"
-			);
+	// static final Pattern METHOD_ENTER_EXIT_TRANSACTION_TASK =//
+	// Pattern.compile("(.+) : (\\w{3}) [(.+)]: [txn:(\\d+) task:(\\d+) (.*)] ===> (ENTRY|EXIT)");
+	static final Pattern DO_NOT_PROCESS = Pattern
+			.compile("(.*)\\[(.*)Tasks::impl::GlobalQueue::(.*)\\] (.*)|"
+					+ "(.*)\\[(.*)Tasks::impl::TaskImpl::process\\](.*)|"
+					+ "(.*)\\[(.*)Tasks::impl::TaskManager_impl::(.*)\\](.*)|"
+					+ "(.*)\\[(.*)SimpleServantActivator::etherealize\\](.*)|"
+					+ "(.*)\\]: STMT \\[Con:(.*)|" + "(.*)\\]: CORBA_1:(.*)|"
+					+ "(.*)\\[OpenAPI::(.*)|"
+					+ "(.*)\\[DBS::TransactionManager::getTransaction\\](.*)|"
+					+ "(.*)\\[txn:(\\d+) DBS::Transaction_impl::commit\\](.*)");
 	static final Pattern METHOD_ENTER = Pattern.compile("(.+) ===> ENTRY");
-	// Nov 13 10:52:23 a : DBG [SYSTEM 1:4510:b22fab70 TaskManager]:	
+	// Nov 13 10:52:23 a : DBG [SYSTEM 1:4510:b22fab70 TaskManager]:
 	// [Tasks::impl::GlobalQueue::get_next] Runner 0x85ba148 - task 1229
-	// (start_at: 1384325543, now: 1384325543)	
-	static final Pattern RUNNER_ENTER = Pattern.compile("(.+) Runner (.+) - task (\\d+) \\(start_at: (\\d+), now: (\\d+)\\)");
-	static final Pattern METHOD_EXIT = Pattern.compile("(.+) <=== EXIT \\[(.*)\\]");
-	static final Pattern METHOD_EXIT_ERROR = Pattern.compile("(.+) <=== EXIT \\(by exception\\) \\[(.*)\\]");
-	static final Pattern METHOD_TRANSACTION_TASK = Pattern.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[txn:(\\d+) task:(\\d+) (.+)\\](.*)");
-	
-	static final Pattern METHOD_TASK_ANNOTATED = Pattern.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[task:(\\d+) (\\w+)\\] \\[(.+)\\](.*)");
-	static final Pattern METHOD_TASK = Pattern.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[task:(\\d+) (.+)\\](.*)");
-	
-	static final Pattern METHOD_TRANSACTION_ANNOTATED = Pattern.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[txn:(\\d+) (\\w+)\\] \\[(.+)\\](.*)");
-	static final Pattern METHOD_TRANSACTION = Pattern.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[txn:(\\d+) (.+?)\\](.*)");
-	////Nov 13 10:52:24 a : DBG [1:4485:b23feb70:49 1:4472:b29ffb70 Kernel]: STMT [Con: 2902, 0xb2734880] ' SELECT rt.rt_id AS rt_id, rc.class_id AS rc_id, rc.sc_id AS sc_id, rt.restype_name AS name, rt.system AS system, rt.description AS description FROM resource_types rt JOIN resource_classes rc ON (rc.class_id = rt.class_id)  WHERE rt_id = ?'($0 = 1000245)
-	//static final Pattern STATEMENT_CONNECTION = Pattern
-	//.compile("(.+) : (\\w{3}) \\[(.*)\\]: STMT \\[Con: (\\d+), (.+)\\](.*)");
-	////Nov 13 10:52:24 a : DBG [1:4485:b26ffb70:54 1:4472:b29ffb70 Kernel]: STMT [Con: 2902, 0xb2734880 txn:17081] ' SELECT st.st_id AS st_id, st.version AS version, st.name AS name, st.description AS description, st.owner_id AS owner_id, st.st_type AS category, st.for_sale AS active, st.auto_provisioning AS auto_provisioning, st.subs_visibility_policy AS subs_visibility_policy, (SELECT 1 FROM dual WHERE EXISTS     (SELECT 1 FROM st_resources str WHERE str.st_id = st.st_id AND str.sub_limit = -2)) AS limits_defined FROM service_templates st WHERE st_id = ?'($0 = 4)
-	//static final Pattern STATEMENT_CONNECTION_TASK = Pattern
-	//.compile("(.+) : (\\w{3}) \\[(.*)\\]: STMT \\[Con: (\\d+), (.+) txn:(\\d+)\\](.*)");
-	// Nov 13 10:52:23 a : DBG [SYSTEM 1:4510:b18f0b70 TaskManager]:	
+	// (start_at: 1384325543, now: 1384325543)
+	static final Pattern RUNNER_ENTER = Pattern
+			.compile("(.+) Runner (.+) - task (\\d+) \\(start_at: (\\d+), now: (\\d+)\\)");
+	static final Pattern METHOD_EXIT = Pattern
+			.compile("(.+) <=== EXIT \\[(.*)\\]");
+	static final Pattern METHOD_EXIT_ERROR = Pattern
+			.compile("(.+) <=== EXIT \\(by exception\\) \\[(.*)\\]");
+	static final Pattern METHOD_TRANSACTION_TASK = Pattern
+			.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[txn:(\\d+) task:(\\d+) (.+)\\](.*)");
+
+	static final Pattern METHOD_TASK_ANNOTATED = Pattern
+			.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[task:(\\d+) (\\w+)\\] \\[(.+)\\](.*)");
+	static final Pattern METHOD_TASK = Pattern
+			.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[task:(\\d+) (.+)\\](.*)");
+
+	static final Pattern METHOD_TRANSACTION_ANNOTATED = Pattern
+			.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[txn:(\\d+) (\\w+)\\] \\[(.+)\\](.*)");
+	static final Pattern METHOD_TRANSACTION = Pattern
+			.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[txn:(\\d+) (.+?)\\](.*)");
+	// //Nov 13 10:52:24 a : DBG [1:4485:b23feb70:49 1:4472:b29ffb70 Kernel]:
+	// STMT [Con: 2902, 0xb2734880] ' SELECT rt.rt_id AS rt_id, rc.class_id AS
+	// rc_id, rc.sc_id AS sc_id, rt.restype_name AS name, rt.system AS system,
+	// rt.description AS description FROM resource_types rt JOIN
+	// resource_classes rc ON (rc.class_id = rt.class_id) WHERE rt_id = ?'($0 =
+	// 1000245)
+	// static final Pattern STATEMENT_CONNECTION = Pattern
+	// .compile("(.+) : (\\w{3}) \\[(.*)\\]: STMT \\[Con: (\\d+), (.+)\\](.*)");
+	// //Nov 13 10:52:24 a : DBG [1:4485:b26ffb70:54 1:4472:b29ffb70 Kernel]:
+	// STMT [Con: 2902, 0xb2734880 txn:17081] ' SELECT st.st_id AS st_id,
+	// st.version AS version, st.name AS name, st.description AS description,
+	// st.owner_id AS owner_id, st.st_type AS category, st.for_sale AS active,
+	// st.auto_provisioning AS auto_provisioning, st.subs_visibility_policy AS
+	// subs_visibility_policy, (SELECT 1 FROM dual WHERE EXISTS (SELECT 1 FROM
+	// st_resources str WHERE str.st_id = st.st_id AND str.sub_limit = -2)) AS
+	// limits_defined FROM service_templates st WHERE st_id = ?'($0 = 4)
+	// static final Pattern STATEMENT_CONNECTION_TASK = Pattern
+	// .compile("(.+) : (\\w{3}) \\[(.*)\\]: STMT \\[Con: (\\d+), (.+) txn:(\\d+)\\](.*)");
+	// Nov 13 10:52:23 a : DBG [SYSTEM 1:4510:b18f0b70 TaskManager]:
 	// [Tasks::impl::TaskImpl::process] ===> ENTRY
-	static final Pattern METHOD_TASK_START = Pattern.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[(.+)\\]");
-	// Nov 13 10:52:23 a : DBG [SYSTEM 1:4510:b22fab70 TaskManager]: [task:1229 process] TaskI 1229: invoking scheduleProxiesConfigurationUpdate on SCREF:proxies_configuration:0"
-	// Nov 13 10:52:23 a : DBG [SYSTEM 1:4510:b22fab70 TaskManager]: [task:1229// process] TaskI 1229: complete
-	static final Pattern TASK_START = Pattern.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[task:(\\d+) process\\] TaskI (\\d+): invoking(.*)");
-	static final Pattern TASK_COMPLETE = Pattern.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[task:(\\d+) process\\] TaskI (\\d+): complete(.*)");
-	static final Pattern ANY_LOG = Pattern.compile("(.+) : (\\w{3}) \\[(.*)\\](.*)");
-	/** *  */private final LogView logView;/** * @param logView */ViewContentProvider(LogView logView) {this.logView = logView;}TreeParent root;
+	static final Pattern METHOD_TASK_START = Pattern
+			.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[(.+)\\]");
+	// Nov 13 10:52:23 a : DBG [SYSTEM 1:4510:b22fab70 TaskManager]: [task:1229
+	// process] TaskI 1229: invoking scheduleProxiesConfigurationUpdate on
+	// SCREF:proxies_configuration:0"
+	// Nov 13 10:52:23 a : DBG [SYSTEM 1:4510:b22fab70 TaskManager]:
+	// [task:1229// process] TaskI 1229: complete
+	static final Pattern TASK_START = Pattern
+			.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[task:(\\d+) process\\] TaskI (\\d+): invoking(.*)");
+	static final Pattern TASK_COMPLETE = Pattern
+			.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[task:(\\d+) process\\] TaskI (\\d+): complete(.*)");
+	static final Pattern ANY_LOG = Pattern
+			.compile("(.+) : (\\w{3}) \\[(.*)\\](.*)");
+	/** * */
+	private final LogView logView;
+
+	/** * @param logView */
+	ViewContentProvider(LogView logView) {
+		this.logView = logView;
+	}
+
+	TreeParent root;
 
 	public void inputChanged(Viewer v, Object oldInput, Object newInput) {
 	}
@@ -138,8 +175,9 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 			return ((TreeParent) parent).hasChildren();
 		return false;
 	}
+
 	/*
-	 *  * We will set up a dummy model to initialize tree heararchy. In a real *
+	 * * We will set up a dummy model to initialize tree heararchy. In a real *
 	 * code, you will connect to a real model and expose its hierarchy.
 	 */
 
@@ -219,7 +257,8 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 						}
 					}
 				}
-			}}
+			}
+		}
 		return d;
 	}
 
@@ -234,27 +273,27 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 		return stack;
 	}
 
-	//	void closeCall(LogEntryDescriptor callDescriptor) {
-	//		Stack<TreeParent> stack = getStack(callDescriptor.task);
-	//		ArrayList<TreeParent> lostEntries = new ArrayList<TreeParent>();
-	//		for (int i = stack.size() - 1; i >= 0; i--) {
-	//			TreeParent candidate = stack.get(i);
-	//			lostEntries.add(candidate);
-	//			if (candidate.getName().equals(callDescriptor.method)) {
-	//				break;
-	//			}
-	//		}
-	//		if (lostEntries.size() == stack.size()
-	//				&& !stack.get(0).getName().equals(callDescriptor.method)) {
-	//			throw new RuntimeException(String.format(
-	//					"Could not find beginning of '%s'", callDescriptor.method));
-	//		}
-	//		if (lostEntries.size() > 1) {
-	//			System.out.println("LONG JUMP:" + callDescriptor.method + "->"
-	//					+ lostEntries);
-	//		}
-	//		stack.removeAll(lostEntries);
-	//	}
+	// void closeCall(LogEntryDescriptor callDescriptor) {
+	// Stack<TreeParent> stack = getStack(callDescriptor.task);
+	// ArrayList<TreeParent> lostEntries = new ArrayList<TreeParent>();
+	// for (int i = stack.size() - 1; i >= 0; i--) {
+	// TreeParent candidate = stack.get(i);
+	// lostEntries.add(candidate);
+	// if (candidate.getName().equals(callDescriptor.method)) {
+	// break;
+	// }
+	// }
+	// if (lostEntries.size() == stack.size()
+	// && !stack.get(0).getName().equals(callDescriptor.method)) {
+	// throw new RuntimeException(String.format(
+	// "Could not find beginning of '%s'", callDescriptor.method));
+	// }
+	// if (lostEntries.size() > 1) {
+	// System.out.println("LONG JUMP:" + callDescriptor.method + "->"
+	// + lostEntries);
+	// }
+	// stack.removeAll(lostEntries);
+	// }
 
 	void closeCall(LogEntryDescriptor callDescriptor) {
 		Stack<TreeParent> stack = getStack(callDescriptor.task);
@@ -265,8 +304,8 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 			if (candidate.getName().equals(callDescriptor.method)) {
 				break;
 			}
-//			else 
-//				System.err.println("oops");
+			// else
+			// System.err.println("oops");
 		}
 		if (lostEntries.size() == stack.size()
 				&& !stack.get(0).getName().equals(callDescriptor.method)) {// throw
@@ -338,7 +377,7 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 					method.raw = line;
 					method.order = order;
 					getStack(null/* TODO: find scheduler and attach */).peek()
-					.addChild(method);
+							.addChild(method);
 					getStack(callDescriptor.task).push(method);
 					continue;
 				}
@@ -381,43 +420,110 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 	}
 }
 
-//C:\Users\Public\{a923b653-b6d1-4c0c-948a-5366f2aad0ff}.vdi                                                                        d 65001   73351458816     Col 0     27%   17:54
-//\[(.+)\\]");// Nov 13 10:52:23 a : DBG [SYSTEM 1:4510:b22fab70 TaskManager]: [task:1229// process] TaskI 1229: invoking scheduleProxiesConfigurationUpdate on// SCREF:prox
-//ies_configuration:0// Nov 13 10:52:23 a : DBG [SYSTEM 1:4510:b22fab70 TaskManager]: [task:1229// process] TaskI 1229: completestatic final Pattern TASK_START = Pattern
-//.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[task:(\\d+) process\\] TaskI (\\d+): invoking(.*)");static final Pattern TASK_COMPLETE = Pattern.compile("(.+) : (\\w{3}) \\[(.*
-//)\\]: \\[task:(\\d+) process\\] TaskI (\\d+): complete(.*)");static final Pattern ANY_LOG = Pattern.compile("(.+) : (\\w{3}) \\[(.*)\\](.*)");/** *  */private
-//final LogView logView;/** * @param logView */ViewContentProvider(LogView logView) {this.logView = logView;}TreeParent root;public void inputChanged(Viewer v,
-// Object oldInput, Object newInput) {}public void dispose() {}public Object[] getElements(Object parent) {if (parent.equals(logView.getViewSite())) {if (root ==
-//null)initialize();return getChildren(root);}return getChildren(parent);}public Object getParent(Object child) {if (child instanceof TreeObject) {retur
-//n ((TreeObject) child).getParent();}return null;}public Object[] getChildren(Object parent) {if (parent instanceof TreeParent) {return ((TreeParent) parent).ge
-//tChildren();}return new Object[0];}public boolean hasChildren(Object parent) {if (parent instanceof TreeParent)return ((TreeParent) parent).hasChildren();re
-//turn false;}/* * We will set up a dummy model to initialize tree heararchy. In a real * code, you will connect to a real model and expose its hierarchy. */class Log
-//EntryDescriptor {String date;String level;String module;String txn;String task;String method;String text;}private LogEntryDescriptor getCallDescriptor(
-//String line) {LogEntryDescriptor d = new LogEntryDescriptor();Matcher matcher = METHOD_TRANSACTION_TASK.matcher(line);if (matcher.matches()) {d.date = matcher.grou
-//p(1);d.level = matcher.group(2);d.module = matcher.group(3);d.txn = matcher.group(4);d.task = matcher.group(5);d.method = matcher.group(6);d.text = match
-//er.group(7);} else {matcher = METHOD_TASK.matcher(line);if (matcher.matches()) {d.date = matcher.group(1);d.level = matcher.group(2);d.module = matcher
-//.group(3);d.task = matcher.group(4);d.method = matcher.group(5);d.text = matcher.group(6);} else {matcher = METHOD_TRANSACTION.matcher(line);if (mat
-//cher.matches()) {d.date = matcher.group(1);d.level = matcher.group(2);d.module = matcher.group(3);d.txn = matcher.group(4);d.method = matcher.group
-//(5);d.text = matcher.group(6);} else {matcher = METHOD_TASK_START.matcher(line);if (matcher.matches()) {d.date = matcher.group(1);d.level =
-//matcher.group(2);d.module = matcher.group(3);d.method = matcher.group(4);} else {//matcher = ANY_LOG.matcher(line);//if (matcher.matches()) {/
-///d.date = matcher.group(1);//d.level = matcher.group(2);//d.method = matcher.group(4);//} else {d.method = line;d.text = line;//
-//}}}}}return d;}HashMap<String, Stack<TreeParent>> callStacks = new HashMap<String, Stack<TreeParent>>();private Stack<TreeParent> getStack(Stri
-//ng taskID) {Stack<TreeParent> stack = callStacks.get(taskID);if (stack == null) {stack = new Stack<TreeParent>();callStacks.put(taskID, stack);}return stack;
-//}void closeCall(LogEntryDescriptor callDescriptor) {Stack<TreeParent> stack = getStack(callDescriptor.task);ArrayList<TreeParent> lostEntries = new ArrayList<TreePar
-//ent>();for (int i = stack.size() - 1; i >= 0; i--) {TreeParent candidate = stack.get(i);lostEntries.add(candidate);if (candidate.getName().equals(callDescriptor.m
-//ethod)) {break;}}if (lostEntries.size() == stack.size() && !stack.get(0).getName().equals(callDescriptor.method) ) {//throw new RuntimeException(String.format
-//("Could not find beginning of '%s'", callDescriptor.method));System.err.println("ORPHAN RETURN detected: " + callDescriptor.method);} if(lostEntries.size()>1) { Sy
-//stem.out.println("LONG RETURN executed: " + callDescriptor.method + "->" + lostEntries); }stack.removeAll(lostEntries);}private void initialize() {root = logView.n
-//ew TreeParent("");getStack(null).push(root);//String logfilepath = "/home/kdonskov/workspace/POALogViewer/a.poa.debug.log";//b181String logfilepath = "/home/kdonskov/
-//workspace/POALogViewer/poa.debug.log";//b20...try {BufferedReader reader = new BufferedReader(new FileReader(new File(logfilepath)));int order = -1;St
-//ring line = null;while ((line = reader.readLine()) != null) {order++;if (line.isEmpty())continue;Matcher skipIt = DO_NOT_PROCESS.matcher(line)
-//;if (skipIt.matches()) {continue;}Matcher matcher = METHOD_ENTER.matcher(line);if (matcher.matches()) {LogEntryDescriptor callDescriptor = getCa
-//llDescriptor(matcher.group(1));TreeParent method = logView.new TreeParent(callDescriptor.method);method.raw = line;method.order = order;S
-//tack<TreeParent> stack = getStack(callDescriptor.task);stack.peek().addChild(method);stack.push(method);continue;}matcher = RUNNER_ENTER.matcher(line
-//);if (matcher.matches()) {LogEntryDescriptor callDescriptor = getCallDescriptor(matcher.group(1));TreeParent method = logView.new TreeParent(cal
-//lDescriptor.method);method.raw = line;method.order = order;Stack<TreeParent> stack = getStack(callDescriptor.task);stack.peek().addChild(method);st
-//ack.push(method);continue;}matcher = TASK_START.matcher(line);if (matcher.matches()) {LogEntryDescriptor callDescriptor = getCallDescriptor(line);
-//TreeParent method = logView.new TreeParent(callDescriptor.method);method.raw = line;method.order = order;getStack(null/* TODO: find scheduler and att
-//ach */).peek().addChild(method);getStack(callDescriptor.task).push(method);continue;}matcher = METHOD_EXIT.matcher(line);if (matcher.matches(
-//)) {// check pop the same methodLogEntryDescriptor callDescriptor = getCallDescriptor(matcher.group(1));closeCall(callDescriptor);continue;}
-//matcher = METHOD_EXIT_ERROR.matcher(line);if (matcher.matches()) {LogEntryDescriptor callDescriptor = getCallDescriptor(matcher.group(1));closeCall
+// C:\Users\Public\{a923b653-b6d1-4c0c-948a-5366f2aad0ff}.vdi d 65001
+// 73351458816 Col 0 27% 17:54
+// \[(.+)\\]");// Nov 13 10:52:23 a : DBG [SYSTEM 1:4510:b22fab70 TaskManager]:
+// [task:1229// process] TaskI 1229: invoking scheduleProxiesConfigurationUpdate
+// on// SCREF:prox
+// ies_configuration:0// Nov 13 10:52:23 a : DBG [SYSTEM 1:4510:b22fab70
+// TaskManager]: [task:1229// process] TaskI 1229: completestatic final Pattern
+// TASK_START = Pattern
+// .compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[task:(\\d+) process\\] TaskI (\\d+): invoking(.*)");static
+// final Pattern TASK_COMPLETE = Pattern.compile("(.+) : (\\w{3}) \\[(.*
+// )\\]: \\[task:(\\d+) process\\] TaskI (\\d+):
+// complete(.*)");static final Pattern ANY_LOG = Pattern.compile("(.+) :
+// (\\w{3}) \\[(.*)\\](.*)");/** * */private
+// final LogView logView;/** * @param logView */ViewContentProvider(LogView
+// logView) {this.logView = logView;}TreeParent root;public void
+// inputChanged(Viewer v,
+// Object oldInput, Object newInput) {}public void dispose() {}public Object[]
+// getElements(Object parent) {if (parent.equals(logView.getViewSite())) {if
+// (root ==
+// null)initialize();return getChildren(root);}return
+// getChildren(parent);}public Object getParent(Object child) {if (child
+// instanceof TreeObject) {retur
+// n ((TreeObject) child).getParent();}return null;}public Object[]
+// getChildren(Object parent) {if (parent instanceof TreeParent) {return
+// ((TreeParent) parent).ge
+// tChildren();}return new Object[0];}public boolean hasChildren(Object parent)
+// {if (parent instanceof TreeParent)return ((TreeParent)
+// parent).hasChildren();re
+// turn false;}/* * We will set up a dummy model to initialize tree heararchy.
+// In a real * code, you will connect to a real model and expose its hierarchy.
+// */class Log
+// EntryDescriptor {String date;String level;String module;String txn;String
+// task;String method;String text;}private LogEntryDescriptor getCallDescriptor(
+// String line) {LogEntryDescriptor d = new LogEntryDescriptor();Matcher matcher
+// = METHOD_TRANSACTION_TASK.matcher(line);if (matcher.matches()) {d.date =
+// matcher.grou
+// p(1);d.level = matcher.group(2);d.module = matcher.group(3);d.txn =
+// matcher.group(4);d.task = matcher.group(5);d.method = matcher.group(6);d.text
+// = match
+// er.group(7);} else {matcher = METHOD_TASK.matcher(line);if
+// (matcher.matches()) {d.date = matcher.group(1);d.level =
+// matcher.group(2);d.module = matcher
+// .group(3);d.task = matcher.group(4);d.method = matcher.group(5);d.text =
+// matcher.group(6);} else {matcher = METHOD_TRANSACTION.matcher(line);if (mat
+// cher.matches()) {d.date = matcher.group(1);d.level =
+// matcher.group(2);d.module = matcher.group(3);d.txn =
+// matcher.group(4);d.method = matcher.group
+// (5);d.text = matcher.group(6);} else {matcher =
+// METHOD_TASK_START.matcher(line);if (matcher.matches()) {d.date =
+// matcher.group(1);d.level =
+// matcher.group(2);d.module = matcher.group(3);d.method = matcher.group(4);}
+// else {//matcher = ANY_LOG.matcher(line);//if (matcher.matches()) {/
+// /d.date = matcher.group(1);//d.level = matcher.group(2);//d.method =
+// matcher.group(4);//} else {d.method = line;d.text = line;//
+// }}}}}return d;}HashMap<String, Stack<TreeParent>> callStacks = new
+// HashMap<String, Stack<TreeParent>>();private Stack<TreeParent> getStack(Stri
+// ng taskID) {Stack<TreeParent> stack = callStacks.get(taskID);if (stack ==
+// null) {stack = new Stack<TreeParent>();callStacks.put(taskID, stack);}return
+// stack;
+// }void closeCall(LogEntryDescriptor callDescriptor) {Stack<TreeParent> stack =
+// getStack(callDescriptor.task);ArrayList<TreeParent> lostEntries = new
+// ArrayList<TreePar
+// ent>();for (int i = stack.size() - 1; i >= 0; i--) {TreeParent candidate =
+// stack.get(i);lostEntries.add(candidate);if
+// (candidate.getName().equals(callDescriptor.m
+// ethod)) {break;}}if (lostEntries.size() == stack.size() &&
+// !stack.get(0).getName().equals(callDescriptor.method) ) {//throw new
+// RuntimeException(String.format
+// ("Could not find beginning of '%s'",
+// callDescriptor.method));System.err.println("ORPHAN RETURN detected: " +
+// callDescriptor.method);} if(lostEntries.size()>1) { Sy
+// stem.out.println("LONG RETURN executed: " + callDescriptor.method + "->" +
+// lostEntries); }stack.removeAll(lostEntries);}private void initialize() {root
+// = logView.n
+// ew TreeParent("");getStack(null).push(root);//String logfilepath =
+// "/home/kdonskov/workspace/POALogViewer/a.poa.debug.log";//b181String
+// logfilepath = "/home/kdonskov/
+// workspace/POALogViewer/poa.debug.log";//b20...try {BufferedReader reader =
+// new BufferedReader(new FileReader(new File(logfilepath)));int order = -1;St
+// ring line = null;while ((line = reader.readLine()) != null) {order++;if
+// (line.isEmpty())continue;Matcher skipIt = DO_NOT_PROCESS.matcher(line)
+// ;if (skipIt.matches()) {continue;}Matcher matcher =
+// METHOD_ENTER.matcher(line);if (matcher.matches()) {LogEntryDescriptor
+// callDescriptor = getCa
+// llDescriptor(matcher.group(1));TreeParent method = logView.new
+// TreeParent(callDescriptor.method);method.raw = line;method.order = order;S
+// tack<TreeParent> stack =
+// getStack(callDescriptor.task);stack.peek().addChild(method);stack.push(method);continue;}matcher
+// = RUNNER_ENTER.matcher(line
+// );if (matcher.matches()) {LogEntryDescriptor callDescriptor =
+// getCallDescriptor(matcher.group(1));TreeParent method = logView.new
+// TreeParent(cal
+// lDescriptor.method);method.raw = line;method.order = order;Stack<TreeParent>
+// stack = getStack(callDescriptor.task);stack.peek().addChild(method);st
+// ack.push(method);continue;}matcher = TASK_START.matcher(line);if
+// (matcher.matches()) {LogEntryDescriptor callDescriptor =
+// getCallDescriptor(line);
+// TreeParent method = logView.new TreeParent(callDescriptor.method);method.raw
+// = line;method.order = order;getStack(null/* TODO: find scheduler and att
+// ach
+// */).peek().addChild(method);getStack(callDescriptor.task).push(method);continue;}matcher
+// = METHOD_EXIT.matcher(line);if (matcher.matches(
+// )) {// check pop the same methodLogEntryDescriptor callDescriptor =
+// getCallDescriptor(matcher.group(1));closeCall(callDescriptor);continue;}
+// matcher = METHOD_EXIT_ERROR.matcher(line);if (matcher.matches())
+// {LogEntryDescriptor callDescriptor =
+// getCallDescriptor(matcher.group(1));closeCall
