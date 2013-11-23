@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.regex.Pattern;
 
-import javax.management.Descriptor;
-
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IMenuListener;
@@ -34,8 +32,6 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.DrillDownAdapter;
 import org.eclipse.ui.part.ViewPart;
 
-import com.parallels.utils.ui.log.ViewContentProvider.LogEntryDescriptor;
-
 /**
  * * This sample class demonstrates how to plug-in a new * workbench view. The
  * view shows data obtained from the * model. The sample creates a dummy model
@@ -59,22 +55,29 @@ public class LogView extends ViewPart {
 	private DrillDownAdapter drillDownAdapter;
 	private Action action1;
 	private Action action2;
-	private Action doubleClickAction; 
-	
+	private Action doubleClickAction; /*
+									 *  * The content provider class is
+									 * responsible for * providing objects to
+									 * the view. It can wrap * existing objects
+									 * in adapters or simply return * objects
+									 * as-is. These objects may be sensitive *
+									 * to the current input of the view, or
+									 * ignore * it and always show the same
+									 * content * (like Task List, for example).
+									 */
+
 	class TreeObject implements IAdaptable {
+		private String name;
 		private TreeParent parent;
 		int order;
-		LogEntryDescriptor desciptor;
+		String raw;
 
-		public TreeObject(LogEntryDescriptor desciptor) {
-			this.desciptor = desciptor;
+		public TreeObject(String name) {
+			this.name = name;
 		}
 
 		public String getName() {
-			return desciptor != null ? 
-					(desciptor.message != null && !desciptor.message.isEmpty()? 
-							desciptor.message : (desciptor.method != null && !desciptor.method.isEmpty()? 
-									desciptor.method : desciptor.raw)) : "<unknown>";
+			return name;
 		}
 
 		public void setParent(TreeParent parent) {
@@ -97,8 +100,8 @@ public class LogView extends ViewPart {
 	class TreeParent extends TreeObject {
 		private ArrayList<TreeObject> children;
 
-		public TreeParent(LogEntryDescriptor descriptor) {
-			super(descriptor);
+		public TreeParent(String name) {
+			super(name);
 			children = new ArrayList<TreeObject>();
 		}
 
@@ -214,7 +217,7 @@ public class LogView extends ViewPart {
 
 	void find(TreeParent root, Pattern pattern, Collection<TreeObject> out, boolean all) {
 		for (TreeObject leaf : root.getChildren()) {
-			if (pattern.matcher(leaf.desciptor.raw).matches()) {
+			if (pattern.matcher(leaf.raw).matches()) {
 				out.add(leaf);
 				if(!all)
 					return;
@@ -232,11 +235,7 @@ public class LogView extends ViewPart {
 			public void run() {
 //				showMessage("Action 1 executed");
 				// TODO: ctrf-f!!!!
-//				String msg = ".*REST: DELETE /poa/service-users/5de01c67-332e-451d-891d-8df69178e43d.*";
-//				String msg = ".*REST: .*|.*due to unregistering incoming link disabled.*";
-//				String msg = ".*500 Internal Error.*";
-//				String msg = ".*DELETE on http://endpoint.*";
-				String msg = ".*DELETE FROM \"aps_resource_link\".*|.*DELETE on http://endpoint.a.kdonskov.aps.sw.ru/OwnCloud-ldap/users/21b5e57c-62ae-4b75-aa01-1db170759816 .*";//123f23a2-4ff2-4597-b197-196d3fe2e279 .*";
+				String msg = ".*REST: DELETE /poa/service-users/5de01c67-332e-451d-891d-8df69178e43d.*";
 					//	"Nov 13 10:52:24 a : DBG [1:4485:b26ffb70:54 1:4758:ae3ffb70 SAAS]: [txn:17081 APSC] RQL: 'limit(0,1),serviceTemplateId=eq=4,implementing(http:%2F%2Fparallels.com%2Faps%2Ftypes%2Fpa%2FserviceTemplate%2F1.0)', AST: TOK_AND_FUNC(TOK_LIMIT_FUNC()TOK_EQ_FUNC( 'serviceTemplateId' '4')TOK_IMPLEMENTING_FUNC())";
 				TreeParent root = ((ViewContentProvider) viewer.getContentProvider()).root;
 				ArrayList<TreeObject> found = new ArrayList<TreeObject>();
@@ -250,7 +249,7 @@ public class LogView extends ViewPart {
 		action1.setImageDescriptor(PlatformUI.getWorkbench().getSharedImages().getImageDescriptor(ISharedImages.IMG_OBJS_INFO_TSK));
 		action2 = new Action() {
 			public void run() {
-				viewer.collapseAll();
+				showMessage("Action 2 executed");
 			}
 		};
 		action2.setText("Action 2");
