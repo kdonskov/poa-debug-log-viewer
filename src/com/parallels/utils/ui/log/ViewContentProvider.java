@@ -3,6 +3,7 @@ package com.parallels.utils.ui.log;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Stack;
 import java.util.regex.Matcher;
@@ -60,11 +61,13 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 		String date;
 		String level;
 		String module;
+		String thread;
 		String txn;
 		String task;
 		String method;
 		String message;
 		String raw;
+		
 		@Override
 		public String toString() {
 			return raw;
@@ -72,6 +75,14 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 		
 	}
 
+	private String getThread(String module) {
+		Matcher matcher = Constants.MODULE.matcher(module);
+		if(matcher.matches()) {
+			return matcher.group(1);
+		}
+		return null;
+	}
+	
 	private LogEntryDescriptor getCallDescriptor(String line) {
 		LogEntryDescriptor d = new LogEntryDescriptor();
 		d.raw = line;
@@ -80,6 +91,7 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 			d.date = matcher.group(1);
 			d.level = matcher.group(2);
 			d.module = matcher.group(3);
+			d.thread = getThread(d.module);
 			d.txn = matcher.group(4);
 			d.task = matcher.group(5);
 			d.method = matcher.group(6);
@@ -91,6 +103,7 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 			d.date = matcher.group(1);
 			d.level = matcher.group(2);
 			d.module = matcher.group(3);
+			d.thread = getThread(d.module);
 			d.task = matcher.group(4);
 			d.method = matcher.group(6);
 			d.message = matcher.group(7);
@@ -101,6 +114,7 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 			d.date = matcher.group(1);
 			d.level = matcher.group(2);
 			d.module = matcher.group(3);
+			d.thread = getThread(d.module);
 			d.task = matcher.group(4);
 			d.method = matcher.group(5);
 			d.message = matcher.group(6);
@@ -111,6 +125,7 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 			d.date = matcher.group(1);
 			d.level = matcher.group(2);
 			d.module = matcher.group(3);
+			d.thread = getThread(d.module);
 			d.txn = matcher.group(4);
 			d.method = matcher.group(6);
 			d.message = matcher.group(7);
@@ -121,6 +136,7 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 			d.date = matcher.group(1);
 			d.level = matcher.group(2);
 			d.module = matcher.group(3);
+			d.thread = getThread(d.module);
 			d.method = matcher.group(5);
 			d.message = matcher.group(6);
 			return d;
@@ -130,6 +146,7 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 			d.date = matcher.group(1);
 			d.level = matcher.group(2);
 			d.module = matcher.group(3);
+			d.thread = getThread(d.module);
 			d.txn = matcher.group(4);
 			d.method = matcher.group(5);
 			d.message = matcher.group(6);
@@ -140,51 +157,39 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 			d.date = matcher.group(1);
 			d.level = matcher.group(2);
 			d.module = matcher.group(3);
+			d.thread = getThread(d.module);
 			d.method = matcher.group(4);
 			return d;
 		}
-		
-		d.message = line;		
+		matcher = Constants.ANY_LOG.matcher(line);
+		if (matcher.matches()) {
+			d.date = matcher.group(1);
+			d.level = matcher.group(2);
+			d.module = matcher.group(3);
+			d.thread = getThread(d.module);
+			d.message = line;
+			return d;
+		}
+
+		d.message = line;
 
 		return d;
 	}
 
 	HashMap<String, Stack<TreeParent>> callStacks = new HashMap<String, Stack<TreeParent>>();
 
-	private Stack<TreeParent> getStack(String taskID) {
-		Stack<TreeParent> stack = callStacks.get(taskID);
+	private Stack<TreeParent> getStack(String threadID) {
+		Stack<TreeParent> stack = callStacks.get(threadID);
 		if (stack == null) {
 			stack = new Stack<TreeParent>();
-			callStacks.put(taskID, stack);
+			callStacks.put(threadID, stack);
 		}
 		return stack;
 	}
 
-	//	void closeCall(LogEntryDescriptor callDescriptor) {
-	//		Stack<TreeParent> stack = getStack(callDescriptor.task);
-	//		ArrayList<TreeParent> lostEntries = new ArrayList<TreeParent>();
-	//		for (int i = stack.size() - 1; i >= 0; i--) {
-	//			TreeParent candidate = stack.get(i);
-	//			lostEntries.add(candidate);
-	//			if (candidate.getName().equals(callDescriptor.method)) {
-	//				break;
-	//			}
-	//		}
-	//		if (lostEntries.size() == stack.size()
-	//				&& !stack.get(0).getName().equals(callDescriptor.method)) {
-	//			throw new RuntimeException(String.format(
-	//					"Could not find beginning of '%s'", callDescriptor.method));
-	//		}
-	//		if (lostEntries.size() > 1) {
-	//			System.out.println("LONG JUMP:" + callDescriptor.method + "->"
-	//					+ lostEntries);
-	//		}
-	//		stack.removeAll(lostEntries);
-	//	}
-
 	void endCall(LogEntryDescriptor callDescriptor) {
-		Stack<TreeParent> stack = getStack(callDescriptor.task);
-//		ArrayList<TreeParent> lostEntries = new ArrayList<TreeParent>();
+		Stack<TreeParent> stack = getStack(callDescriptor.thread);
+		ArrayList<TreeParent> lostEntries = new ArrayList<TreeParent>();
 		if(stack.isEmpty()){
 			System.out.println("RETURN without call: " + callDescriptor.method);
 			return;
@@ -192,41 +197,19 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 		int tail = stack.size() -1;
 		for (int i = tail; i >= 0; i--) {
 			TreeParent candidate = stack.get(i);
-//			lostEntries.add(candidate);
-			if (candidate.desciptor != null &&candidate.desciptor.method.equals(callDescriptor.method)) {
-				stack.remove(i);//lostEntries.add(candidate);
-				break;
+			lostEntries.add(candidate);
+			if (candidate.desciptor != null && candidate.desciptor.method.equals(callDescriptor.method)) {
+//				stack.remove(i);//
+				if(lostEntries.size() > 1)
+					System.out.println("LONG Return: " + callDescriptor.raw + " -> " + lostEntries);
+				stack.removeAll(lostEntries);
+				return;
+//				break;
 			}
 			else if(i==0)
-				System.err.println("oops: " + callDescriptor.method);
+				System.err.println("ORPHAN Return: " + callDescriptor.raw+ " -> " + stack);
 		}
-//		if (lostEntries.size() == stack.size()
-//				&& !stack.get(0).getName().equals(callDescriptor.method)) {// throw
-//			// new
-//			// RuntimeException(String.format("Could not find beginning of '%s'",
-//			// callDescriptor.method));
-//			System.err.println("ORPHAN RETURN detected: "
-//					+ callDescriptor.method);
-//			return;
-//		}
-//		if (lostEntries.size() > 1) {
-//			System.out.println("LONG RETURN executed: " + callDescriptor.method
-//					+ "->" + lostEntries);
-//		}
-//		stack.removeAll(lostEntries);
-	}
-	
-	private TreeParent findParent(Stack<TreeParent> stack, LogEntryDescriptor entry) {
-		TreeParent tail;
-		TreeParent parent = tail = stack.peek();
-		if(entry.txn != null) {
-			while(parent != null && parent.desciptor!=null) {
-				if(entry.txn.equals(parent.desciptor.txn))
-					return parent;
-				parent = parent.getParent();
-			}
-		}
-		return tail;
+		
 	}
 	
 	private void initialize() {
@@ -252,12 +235,20 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 				Matcher matcher = Constants.METHOD_ENTER.matcher(line);
 				if (matcher.matches()) {
 					LogEntryDescriptor callDescriptor = getCallDescriptor(matcher.group(1));
+					
 					TreeParent method = logView.new TreeParent(callDescriptor);
 					method.order = order;
+
+					//--------------------
+					Stack<TreeParent> stack = getStack(callDescriptor.thread);
+					if (stack.isEmpty())
+						getStack(null).peek().addChild(method);
+					else
+						stack.peek().addChild(method);
 					
-					Stack<TreeParent> stack = getStack(callDescriptor.task);
-					findParent(stack, callDescriptor).addChild(method);
 					stack.push(method);
+					//--------------------
+					
 //					stack.peek().addChild(method);
 //					stack.push(method);
 					continue;
@@ -269,9 +260,18 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 					TreeParent method = logView.new TreeParent(callDescriptor);
 					method.order = order;
 					
-					Stack<TreeParent> stack = getStack(callDescriptor.task);
-					findParent(stack, callDescriptor).addChild(method);
+					//--------------------
+					Stack<TreeParent> stack = getStack(callDescriptor.thread);
+					if (stack.isEmpty())
+						getStack(null).peek().addChild(method);
+					else
+						stack.peek().addChild(method);
+					
 					stack.push(method);
+					//--------------------					
+//					Stack<TreeParent> stack = getStack(callDescriptor.thread);
+//					findParent(stack, callDescriptor).addChild(method);
+//					stack.push(method);
 //					
 //					stack.peek().addChild(method);
 //					
@@ -283,13 +283,20 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 					TreeParent method = logView.new TreeParent(callDescriptor);
 					method.order = order;
 					
-					getStack(null).peek().addChild(method);
-					getStack(callDescriptor.task).push(method);
+					Stack<TreeParent> stack = getStack(callDescriptor.thread);
+					if (stack.isEmpty())
+						getStack(null).peek().addChild(method);
+					else
+						stack.peek().addChild(method);
+					
+//					getStack(callDescriptor.thread).peek().addChild(method);
+					getStack(callDescriptor.thread/*ask*/).push(method);
 					
 //					getStack(null).peek().addChild(method);
 //					getStack(callDescriptor.task).push(method);
 					continue;
 				}
+				
 				matcher = Constants.METHOD_EXIT.matcher(line);
 				if (matcher.matches()) {// check pop the same method
 					LogEntryDescriptor callDescriptor = getCallDescriptor(matcher.group(1));
@@ -308,12 +315,19 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 					endCall(callDescriptor);
 					continue;
 				}
+				
+				
 				LogEntryDescriptor callDescriptor = getCallDescriptor(line);
 				TreeObject unclassified = logView.new TreeObject(callDescriptor);
 				unclassified.order = order;
 				try {
-					Stack<TreeParent> stack = getStack(callDescriptor.task);
-					findParent(stack, callDescriptor).addChild(unclassified);
+					//--------------------
+					Stack<TreeParent> stack = getStack(callDescriptor.thread);
+					if (stack.isEmpty())
+						getStack(null).peek().addChild(unclassified);
+					else
+						stack.peek().addChild(unclassified);
+					//--------------------	
 					
 //					getStack(callDescriptor.task).peek().addChild(unclassified);
 				} catch (Exception e) {
@@ -327,4 +341,6 @@ class ViewContentProvider implements IStructuredContentProvider,ITreeContentProv
 			throw new RuntimeException(e);
 		}
 	}
+
+
 }

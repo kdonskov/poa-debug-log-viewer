@@ -210,7 +210,12 @@ public class LogView extends ViewPart {
 		drillDownAdapter.addNavigationActions(manager);
 	}
 
-	void find(TreeParent root, Pattern pattern, Collection<TreeObject> out, boolean all) {
+	void find(TreeParent root, Pattern pattern, Collection<TreeObject> out, boolean all, int deep) {
+		++deep;
+		if (deep > 50) {
+			System.out.println(root.desciptor.raw);
+			return;
+		}
 		for (TreeObject leaf : root.getChildren()) {
 			if (pattern.matcher(leaf.desciptor.raw).matches()) {
 				out.add(leaf);
@@ -218,7 +223,7 @@ public class LogView extends ViewPart {
 					return;
 			}
 			else if (leaf instanceof TreeParent) {
-				find((TreeParent) leaf, pattern, out, all);
+				find((TreeParent) leaf, pattern, out, all, deep);
 				if(!all && !out.isEmpty())
 					return;
 			}
@@ -234,11 +239,12 @@ public class LogView extends ViewPart {
 //				String msg = ".*REST: .*|.*due to unregistering incoming link disabled.*";
 //				String msg = ".*500 Internal Error.*";
 //				String msg = ".*DELETE on http://endpoint.*";
-				String msg = ".*DELETE FROM \"aps_resource_link\".*|.*DELETE on http://endpoint.a.kdonskov.aps.sw.ru/OwnCloud-ldap/users/21b5e57c-62ae-4b75-aa01-1db170759816 .*";//123f23a2-4ff2-4597-b197-196d3fe2e279 .*";
+//				String msg = ".*DELETE FROM \"aps_resource_link\".*|.*DELETE on http://endpoint.a.kdonskov.aps.sw.ru/OwnCloud-ldap/users/21b5e57c-62ae-4b75-aa01-1db170759816 .*";//123f23a2-4ff2-4597-b197-196d3fe2e279 .*";
+				String msg = ".*DELETE on http://endpoint.a.kdonskov.aps.sw.ru/OwnCloud-ldap/users/21b5e57c-62ae-4b75-aa01-1db170759816 .*";
 					//	"Nov 13 10:52:24 a : DBG [1:4485:b26ffb70:54 1:4758:ae3ffb70 SAAS]: [txn:17081 APSC] RQL: 'limit(0,1),serviceTemplateId=eq=4,implementing(http:%2F%2Fparallels.com%2Faps%2Ftypes%2Fpa%2FserviceTemplate%2F1.0)', AST: TOK_AND_FUNC(TOK_LIMIT_FUNC()TOK_EQ_FUNC( 'serviceTemplateId' '4')TOK_IMPLEMENTING_FUNC())";
 				TreeParent root = ((ViewContentProvider) viewer.getContentProvider()).root;
 				ArrayList<TreeObject> found = new ArrayList<TreeObject>();
-				find(root, Pattern.compile(msg), found, true);
+				find(root, Pattern.compile(msg), found, true, 0);
 				System.err.println(found);
 				viewer.setSelection(new StructuredSelection(found));
 			}

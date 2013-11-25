@@ -25,7 +25,9 @@ public class Constants {
 					+ ".*OpenAPI::PEMProxyMethod::execute.*|"
 					+ ".*DBS::checkSQLError.*|"
 					+ ".*Error while executing the query.*|"
-					+ ".*APS::Controller::RESTful::ResourceNotification::.*");
+					+ ".*APS::Controller::RESTful::ResourceNotification::.*|"
+					+ ".*APS::Provision::ApplicationResource::Impl::notify.*|"
+					+ ".*APS::Controller::RESTful::checkResourceReferPermission.*");
 	static final Pattern METHOD_ENTER = Pattern.compile("(.+) ===> ENTRY");
 	static final Pattern RUNNER_ENTER = Pattern
 			.compile("(.+) Runner (.+) - task (\\d+) \\(start_at: (\\d+), now: (\\d+)\\)");
@@ -53,5 +55,8 @@ public class Constants {
 			.compile("(.+) : (\\w{3}) \\[(.*)\\]: \\[task:(\\d+) process\\] TaskI (\\d+): complete(.*)");
 	static final Pattern ANY_LOG = Pattern
 			.compile("(.+) : (\\w{3}) \\[(.*)\\](.*)");
+	
+	static final Pattern MODULE = Pattern.compile("(.+?) (.+?) (.+?)");
+	//Nov 22 17:36:28 mn : DBG [openapi:10.90.0.154:94 1:11179:abccbb70 SAAS]: [txn:540 APSC] [APS::Provision::Workflow::Impl::addTransitionStep] <=== EXIT [0.002477]
 
 }
